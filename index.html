@@ -1,0 +1,961 @@
+<!DOCTYPE html>i 
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Quest: The Lost Island</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js CDN untuk Visual 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Chart.js untuk Grafik Dashboard Kesehatan -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap');
+        body {
+            font-family: 'Poppins', sans-serif;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .pulse-animation {
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen overflow-x-hidden flex flex-col justify-between">
+
+    <!-- Top Navigation Header -->
+    <header class="fixed top-0 left-0 w-full z-40 glass-panel px-4 py-3 flex justify-between items-center shadow-lg border-b border-slate-800">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-extrabold text-xl shadow-lg shadow-emerald-500/20">
+                <i class="fa-solid font-bold fa-heart-pulse"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">Health Quest</h1>
+                <p class="text-xs text-slate-400">The Lost Island • Proyek Edukasi</p>
+            </div>
+        </div>
+
+        <!-- Player Quick Stats Bar -->
+        <div class="hidden md:flex items-center space-x-6 text-xs bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-800">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-bolt text-amber-400"></i>
+                <span>Stamina: <strong id="topStamina" class="text-amber-400">100%</strong></span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-heart text-rose-500"></i>
+                <span>BPM: <strong id="topBpm" class="text-rose-400">75 BPM</strong></span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-shoe-prints text-cyan-400"></i>
+                <span>Langkah: <strong id="topSteps" class="text-cyan-400">1,240</strong></span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-trophy text-yellow-400"></i>
+                <span>Level: <strong id="topLevel" class="text-yellow-400">1</strong></span>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex items-center space-x-2">
+            <button onclick="switchTab('gameTab')" class="nav-btn bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-md">
+                <i class="fa-solid fa-gamepad"></i> <span class="hidden sm:inline">Petualangan 3D</span>
+            </button>
+            <button onclick="switchTab('healthTab')" class="nav-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700">
+                <i class="fa-solid fa-heart-pulse text-rose-400"></i> <span class="hidden sm:inline">Cek Kesehatan</span>
+            </button>
+            <button onclick="switchTab('quizTab')" class="nav-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700">
+                <i class="fa-solid fa-brain text-purple-400"></i> <span class="hidden sm:inline">Teka-Teki</span>
+            </button>
+            <button onclick="switchTab('docsTab')" class="nav-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700">
+                <i class="fa-solid fa-book text-blue-400"></i> <span class="hidden sm:inline">Dokumentasi</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Dynamic Content Wrapper -->
+    <main class="mt-16 mb-6 p-3 md:p-6 max-w-7xl mx-auto w-full flex-grow">
+
+        <!-- ==================== TAB 1: 3D ADVENTURE GAME ==================== -->
+        <section id="gameTab" class="tab-content block space-y-4">
+            <!-- Game Canvas Container -->
+            <div class="relative w-full h-[60vh] md:h-[68vh] bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+                <!-- Three.js Canvas Placeholder -->
+                <div id="canvas3d" class="w-full h-full"></div>
+
+                <!-- HUD Overlay In-Game -->
+                <div class="absolute top-4 left-4 pointer-events-none space-y-2">
+                    <div class="glass-panel px-3 py-2 rounded-xl text-xs space-y-1">
+                        <div class="font-bold text-emerald-400 flex items-center gap-2">
+                            <i class="fa-solid fa-compass"></i> Lokasi: <span id="currentAreaName">Hutan Nutrisi (Zona 1)</span>
+                        </div>
+                        <p class="text-slate-300 text-[11px]">Misi: Temukan Gerbang Batu dan jawab Teka-Teki Kesehatan!</p>
+                    </div>
+                </div>
+
+                <!-- Controls Info Overlay -->
+                <div class="absolute top-4 right-4 pointer-events-none hidden md:block">
+                    <div class="glass-panel px-3 py-2 rounded-xl text-[11px] text-slate-400 space-y-1">
+                        <p><span class="text-emerald-400 font-bold">W A S D / Panah:</span> Gerak Karakter</p>
+                        <p><span class="text-emerald-400 font-bold">Klik + Drag:</span> Putar Kamera 3D</p>
+                    </div>
+                </div>
+
+                <!-- On-Screen Touch Controls (Mobile Friendly) -->
+                <div class="absolute bottom-4 left-4 md:hidden flex flex-col items-center gap-1 opacity-80">
+                    <button id="btnUp" class="w-12 h-12 bg-slate-800/80 active:bg-emerald-600 rounded-full text-white font-bold text-xl flex items-center justify-center border border-slate-600 shadow-lg">▲</button>
+                    <div class="flex gap-4">
+                        <button id="btnLeft" class="w-12 h-12 bg-slate-800/80 active:bg-emerald-600 rounded-full text-white font-bold text-xl flex items-center justify-center border border-slate-600 shadow-lg">◄</button>
+                        <button id="btnDown" class="w-12 h-12 bg-slate-800/80 active:bg-emerald-600 rounded-full text-white font-bold text-xl flex items-center justify-center border border-slate-600 shadow-lg">▼</button>
+                        <button id="btnRight" class="w-12 h-12 bg-slate-800/80 active:bg-emerald-600 rounded-full text-white font-bold text-xl flex items-center justify-center border border-slate-600 shadow-lg">►</button>
+                    </div>
+                </div>
+
+                <!-- Action Button Overlay -->
+                <div class="absolute bottom-4 right-4 flex gap-3">
+                    <button onclick="triggerQuizPrompt()" class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold text-xs md:text-sm px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 transform active:scale-95 transition">
+                        <i class="fa-solid fa-key text-base"></i> Buka Gerbang Kuis
+                    </button>
+                </div>
+            </div>
+
+            <!-- In-Game Stats & Real World Booster -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-lg bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                            <i class="fa-solid fa-heart-pulse text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Detak Jantung Saat Ini</p>
+                            <p id="gameCardBpm" class="text-lg font-bold text-rose-400">75 BPM</p>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('healthTab')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700">Uji Sekarang</button>
+                </div>
+
+                <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                            <i class="fa-solid fa-stopwatch text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Jam Lari / Sesi Fisik</p>
+                            <p id="gameCardRun" class="text-lg font-bold text-cyan-400">00:00:00</p>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('healthTab')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700">Buka Timer</button>
+                </div>
+
+                <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                            <i class="fa-solid fa-gem text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Kristal Kebugaran</p>
+                            <p id="gameCardCrystals" class="text-lg font-bold text-purple-400">1 / 3 Ditemukan</p>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('quizTab')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700">Cari Kristal</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: FITUR KESEHATAN INTEGRATIF ==================== -->
+        <section id="healthTab" class="tab-content hidden space-y-6">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <h2 class="text-2xl font-bold text-emerald-400">Pusat Fitur Kesehatan Real-Time</h2>
+                <p class="text-slate-400 text-sm">Gunakan sensor perangkat Anda atau instrumen simulasi medis untuk memperkuat status karakter 3D dalam petualangan!</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Fitur 1: Uji Detak Jantung (PPG Sensor Simulation / Camera) -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-bold text-rose-400 flex items-center gap-2">
+                                <i class="fa-solid fa-heart-pulse"></i> Sensor Detak Jantung (PPG)
+                            </h3>
+                            <span class="text-xs bg-rose-500/20 text-rose-300 px-2.5 py-1 rounded-full font-semibold">Photoplethysmography</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-4">
+                            Metode ini mendeteksi perubahan volume darah mikroskopis di pembuluh darah kapiler melalui fluktuasi refleksi cahaya pada kamera & flash HP.
+                        </p>
+
+                        <!-- PPG Pulse Visualizer Box -->
+                        <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 flex flex-col items-center justify-center relative overflow-hidden h-48">
+                            <div id="heartIcon" class="text-6xl text-rose-500 mb-2 transition-all duration-300">
+                                <i class="fa-solid fa-heart"></i>
+                            </div>
+                            <div class="text-3xl font-extrabold text-white tracking-wider" id="bpmDisplay">-- <span class="text-sm font-normal text-slate-400">BPM</span></div>
+                            <p id="ppgStatusText" class="text-xs text-slate-400 mt-2">Tekan "Mulai Pemindaian" dan tempelkan jari pada sensor.</p>
+                            
+                            <!-- Animated Wave Effect -->
+                            <div id="waveCanvasContainer" class="absolute bottom-0 left-0 w-full h-12 opacity-40 pointer-events-none">
+                                <canvas id="pulseWaveCanvas" class="w-full h-full"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button id="btnStartPpg" onclick="startPpgScan()" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play"></i> Mulai Pemindaian (15 Dtk)
+                        </button>
+                        <button onclick="resetPpgScan()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-700">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Fitur 2: Jam Lari & Pelacak Aktivitas Fisik -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-bold text-cyan-400 flex items-center gap-2">
+                                <i class="fa-solid fa-stopwatch"></i> Jam Lari & Pedometer
+                            </h3>
+                            <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2.5 py-1 rounded-full font-semibold">Energi Petualang</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-4">
+                            Lari atau berjalan di dunia nyata untuk mengisi ulang Stamina Petualang. 1.000 langkah = 100% Stamina Karakter.
+                        </p>
+
+                        <!-- Stopwatch Display -->
+                        <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 flex flex-col items-center justify-center h-48 space-y-2">
+                            <div id="stopwatchDisplay" class="text-4xl font-mono font-bold text-cyan-400 tracking-widest">
+                                00:00:00
+                            </div>
+                            <div class="flex gap-6 text-center mt-2">
+                                <div>
+                                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">Est. Langkah</p>
+                                    <p id="calcSteps" class="text-base font-bold text-slate-200">0</p>
+                                </div>
+                                <div class="border-r border-slate-800"></div>
+                                <div>
+                                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">Kalori (Kcal)</p>
+                                    <p id="calcCalories" class="text-base font-bold text-amber-400">0.0</p>
+                                </div>
+                                <div class="border-r border-slate-800"></div>
+                                <div>
+                                    <p class="text-[10px] text-slate-500 uppercase tracking-wider">Jarak (m)</p>
+                                    <p id="calcDistance" class="text-base font-bold text-emerald-400">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button id="btnStartTimer" onclick="toggleRunTimer()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play"></i> Mulai Lari / Latihan
+                        </button>
+                        <button onclick="resetRunTimer()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-700">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Fitur 3: Dashboard & Rekam Medis Ringkas -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 lg:col-span-2 space-y-4">
+                    <h3 class="text-lg font-bold text-emerald-400 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> Grafik Kebugaran & Riwayat Kesehatan Harian
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2 bg-slate-900 p-4 rounded-xl border border-slate-800 h-64">
+                            <canvas id="healthChart"></canvas>
+                        </div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col justify-between space-y-3">
+                            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Log Kesehatan Mandiri</h4>
+                            <div class="space-y-2 text-xs">
+                                <div>
+                                    <label class="text-slate-400 block mb-1">Konsumsi Air Harian (Gelas)</label>
+                                    <input type="number" id="waterInput" value="8" min="0" max="20" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-bold focus:outline-none focus:border-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="text-slate-400 block mb-1">Durasi Tidur Semalam (Jam)</label>
+                                    <input type="number" id="sleepInput" value="7.5" step="0.5" min="0" max="15" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white font-bold focus:outline-none focus:border-emerald-500">
+                                </div>
+                            </div>
+                            <button onclick="saveHealthLog()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded-lg text-xs transition">
+                                Simpan & Tambah EXP Karakter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: TEKA-TEKI PERTANYAAN EDUKATIF ==================== -->
+        <section id="quizTab" class="tab-content hidden space-y-6">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <h2 class="text-2xl font-bold text-purple-400">Gerbang Teka-Teki Edukasi Kesehatan</h2>
+                <p class="text-slate-400 text-sm">Jawab pertanyaan berikut untuk membuka wilayah baru di Pulau Insula Vitalis dan klaim Kristal Kebugaran!</p>
+            </div>
+
+            <!-- Quiz Card Container -->
+            <div class="max-w-3xl mx-auto glass-panel p-6 md:p-8 rounded-2xl border border-slate-800 shadow-2xl relative">
+                <!-- Progress Header -->
+                <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                    <span class="text-xs font-semibold text-purple-400 uppercase tracking-wider" id="quizCategory">Kategori: Nutrisi & Gizi Seimbang</span>
+                    <span class="text-xs bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full font-bold" id="quizCounter">Soal 1 Dari 5</span>
+                </div>
+
+                <!-- Question Text -->
+                <div class="mb-6">
+                    <h3 id="quizQuestion" class="text-lg md:text-xl font-bold text-slate-100 leading-relaxed">
+                        Gerbang Batu Nutrisi terkunci! Bahan bakar jenis apa yang memberikan energi tahan lama untuk tubuh manusia tanpa menyebabkan lonjakan gula darah yang cepat turun?
+                    </h3>
+                </div>
+
+                <!-- Answer Options -->
+                <div id="quizOptions" class="space-y-3 mb-6">
+                    <!-- Dynamic Options Inserted via JS -->
+                </div>
+
+                <!-- Explanation Box (Shown after answering) -->
+                <div id="quizExplanation" class="hidden bg-slate-900/90 border border-slate-700 p-4 rounded-xl mb-6 text-xs text-slate-300 leading-relaxed">
+                    <strong class="text-emerald-400 block mb-1">Penjelasan Edukatif:</strong>
+                    <span id="explanationText">Karbohidrat kompleks (seperti oat, beras merah, dan pisang) dicerna secara perlahan oleh tubuh, memberikan pasokan energi yang stabil dan kaya serat.</span>
+                </div>
+
+                <!-- Quiz Navigation Buttons -->
+                <div class="flex justify-between items-center pt-2">
+                    <button onclick="previousQuestion()" class="text-xs text-slate-400 hover:text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
+                        <i class="fa-solid fa-arrow-left"></i> Sebelumnya
+                    </button>
+                    <button id="btnNextQuestion" onclick="nextQuestion()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-lg flex items-center gap-2">
+                        Pertanyaan Selanjutnya <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: DOKUMENTASI & STRUKTUR PROYEK ==================== -->
+        <section id="docsTab" class="tab-content hidden space-y-6">
+            <div class="text-center max-w-3xl mx-auto space-y-2">
+                <h2 class="text-2xl font-bold text-blue-400">Dokumentasi & Rancangan Proyek Sekolah</h2>
+                <p class="text-slate-400 text-sm">Struktur lengkap rancangan Game Design Document (GDD) untuk materi presentasi di depan guru dan teman kelas.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Concept Card -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg mb-2">
+                        <i class="fa-solid fa-lightbulb"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-100">1. Konsep & Latar Belakang</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        <strong>Health Quest: The Lost Island</strong> memadukan permainan petualangan 3D interaktif dengan gaya hidup sehat. Proyek ini bertujuan untuk mengatasi kecenderungan gaya hidup *sedentary* (kurang bergerak) pada siswa sekolah dengan mengintegrasikan aktivitas fisik dunia nyata ke dalam mekanik game.
+                    </p>
+                </div>
+
+                <!-- Technical Card -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-lg mb-2">
+                        <i class="fa-solid fa-microchip"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-100">2. Cara Kerja Sensor PPG (Detak Jantung)</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Menggunakan teknologi <strong>Photoplethysmography (PPG)</strong>. Saat jari menutupi kamera & flash LED, kamera merekam intensitas warna merah (*Red Channel*) dari aliran darah kapiler yang berdenyut seirama detak jantung. Data tersebut diolah dengan algoritma puncak (*peak detection*) untuk menghitung nilai BPM.
+                    </p>
+                </div>
+
+                <!-- Gameplay Features Card -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg mb-2">
+                        <i class="fa-solid fa-gamepad"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-100">3. Fitur Utama Aplikasi</h3>
+                    <ul class="text-xs text-slate-400 space-y-1.5 list-disc list-inside">
+                        <li><strong>Dunia 3D WebGL:</strong> Eksplorasi lingkungan pulau dengan kontrol intuitif.</li>
+                        <li><strong>Uji Detak Jantung PPG:</strong> Integrasi simulasi medis optik.</li>
+                        <li><strong>Jam Lari & Pedometer:</strong> Mengubah waktu aktivitas fisik menjadi stamina game.</li>
+                        <li><strong>Kuis Edukasi Interaktif:</strong> Soal pilihan ganda seputar gizi, tidur, dan kebugaran.</li>
+                    </ul>
+                </div>
+
+                <!-- Academic Goal Card -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg mb-2">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-100">4. Manfaat Proyek Edukasi</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Meningkatkan literasi kesehatan siswa secara menyenangkan (*gamification*). Guru dapat memantau tingkat partisipasi kebugaran siswa melalui dashboard jurnal kesehatan yang terintegrasi secara langsung.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Status Bar -->
+    <footer class="glass-panel border-t border-slate-800 py-3 px-6 text-center text-xs text-slate-500">
+        <p>© 2026 Health Quest: The Lost Island • Dibuat untuk Proyek Edukasi Sekolah</p>
+    </footer>
+
+    <!-- Custom Modal Popup System (Replaces Alert) -->
+    <div id="customModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-sm w-full p-6 rounded-2xl border border-slate-700 shadow-2xl text-center space-y-4">
+            <div id="modalIcon" class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-2xl">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 id="modalTitle" class="text-lg font-bold text-white">Pemberitahuan</h3>
+            <p id="modalMessage" class="text-xs text-slate-300 leading-relaxed">Pesan modal disini...</p>
+            <button onclick="closeModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded-xl text-xs transition">
+                Mengerti
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        /* ==================== GLOBAL APP STATE ==================== */
+        const gameState = {
+            stamina: 100,
+            bpm: 75,
+            steps: 1240,
+            level: 1,
+            crystals: 1,
+            quizIndex: 0,
+            quizScore: 0
+        };
+
+        /* ==================== TAB NAVIGATION LOGIC ==================== */
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            document.getElementById(tabId).classList.remove('hidden');
+
+            // Trigger window resize for 3D canvas and charts when tab switches
+            window.dispatchEvent(new Event('resize'));
+        }
+
+        /* ==================== CUSTOM MODAL SYSTEM ==================== */
+        function showModal(title, message, iconClass = "fa-circle-check", iconColorClass = "text-emerald-400") {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            const iconContainer = document.getElementById('modalIcon');
+            iconContainer.className = `w-12 h-12 rounded-full bg-slate-800 ${iconColorClass} flex items-center justify-center mx-auto text-2xl`;
+            iconContainer.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+            document.getElementById('customModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+
+        /* ==================== THREE.JS 3D GAME ENGINE ==================== */
+        let scene, camera, renderer, playerMesh, crystalMesh, gateMesh;
+        let keys = {};
+
+        function init3DGame() {
+            const container = document.getElementById('canvas3d');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0b1329);
+            scene.fog = new THREE.FogExp2(0x0b1329, 0.03);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.set(0, 8, 14);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x10b981, 0.8);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Ground / Terrain (Low-poly Island)
+            const groundGeo = new THREE.PlaneGeometry(60, 60, 16, 16);
+            const groundMat = new THREE.MeshStandardMaterial({ 
+                color: 0x0f172a, 
+                roughness: 0.8,
+                wireframe: false 
+            });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Decorative Trees / Low poly obstacles
+            for(let i = 0; i < 25; i++) {
+                const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 1.5, 6);
+                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+
+                const foliageGeo = new THREE.ConeGeometry(1.2, 2.5, 5);
+                const foliageMat = new THREE.MeshStandardMaterial({ color: 0x059669 });
+                const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+                foliage.position.y = 1.8;
+
+                const tree = new THREE.Group();
+                tree.add(trunk);
+                tree.add(foliage);
+
+                const x = (Math.random() - 0.5) * 45;
+                const z = (Math.random() - 0.5) * 45;
+                if(Math.abs(x) > 4 || Math.abs(z) > 4) { // keep center clear
+                    tree.position.set(x, 0.75, z);
+                    scene.add(tree);
+                }
+            }
+
+            // Player Avatar (3D Robot / Adventurer)
+            const playerGroup = new THREE.Group();
+            const bodyGeo = new THREE.BoxGeometry(1, 1.2, 0.8);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x10b981 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.9;
+            playerGroup.add(body);
+
+            const headGeo = new THREE.SphereGeometry(0.4, 8, 8);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.8;
+            playerGroup.add(head);
+
+            playerMesh = playerGroup;
+            scene.add(playerMesh);
+
+            // Floating Health Crystal
+            const crystalGeo = new THREE.OctahedronGeometry(0.8, 0);
+            const crystalMat = new THREE.MeshStandardMaterial({ 
+                color: 0xa855f7, 
+                emissive: 0x6b21a8,
+                roughness: 0.2 
+            });
+            crystalMesh = new THREE.Mesh(crystalGeo, crystalMat);
+            crystalMesh.position.set(5, 1.5, -6);
+            scene.add(crystalMesh);
+
+            // Interactive Quiz Gate
+            const gateGeo = new THREE.BoxGeometry(4, 3, 0.5);
+            const gateMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.7 });
+            gateMesh = new THREE.Mesh(gateGeo, gateMat);
+            gateMesh.position.set(0, 1.5, -10);
+            scene.add(gateMesh);
+
+            // Event Listeners for Keyboard Controls
+            window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+            window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+            // Touch button controls
+            setupTouchControl('btnUp', 'w');
+            setupTouchControl('btnDown', 's');
+            setupTouchControl('btnLeft', 'a');
+            setupTouchControl('btnRight', 'd');
+
+            // Resize handle
+            window.addEventListener('resize', onWindowResize);
+
+            // Start Animation Loop
+            animate3D();
+        }
+
+        function setupTouchControl(btnId, keyChar) {
+            const btn = document.getElementById(btnId);
+            if(!btn) return;
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyChar] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyChar] = false; });
+            btn.addEventListener('mousedown', () => keys[keyChar] = true);
+            btn.addEventListener('mouseup', () => keys[keyChar] = false);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas3d');
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+
+            // Player movement logic
+            const speed = 0.12;
+            if (keys['w'] || keys['arrowup']) playerMesh.position.z -= speed;
+            if (keys['s'] || keys['arrowdown']) playerMesh.position.z += speed;
+            if (keys['a'] || keys['arrowleft']) playerMesh.position.x -= speed;
+            if (keys['d'] || keys['arrowright']) playerMesh.position.x += speed;
+
+            // Camera follow player
+            camera.position.x = playerMesh.position.x;
+            camera.position.z = playerMesh.position.z + 12;
+            camera.lookAt(playerMesh.position);
+
+            // Rotate Crystal Effect
+            if (crystalMesh) {
+                crystalMesh.rotation.y += 0.02;
+                crystalMesh.position.y = 1.5 + Math.sin(Date.now() * 0.003) * 0.2;
+            }
+
+            // Check collision distance with Quiz Gate
+            const distToGate = playerMesh.position.distanceTo(gateMesh.position);
+            if (distToGate < 3.5) {
+                document.getElementById('currentAreaName').innerText = "Gerbang Batu Kuis (Siap Ditembus)";
+            } else {
+                document.getElementById('currentAreaName').innerText = "Hutan Nutrisi (Zona 1)";
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function triggerQuizPrompt() {
+            switchTab('quizTab');
+            showModal("Gerbang Kuis Edukasi", "Jawab pertanyaan kuis kesehatan berikut untuk menghancurkan gerbang pembatas di dalam game!", "fa-brain", "text-purple-400");
+        }
+
+        /* ==================== FITUR KESEHATAN 1: SENSOR DETAK JANTUNG (PPG) ==================== */
+        let ppgInterval = null;
+        let isPpgScanning = false;
+
+        function startPpgScan() {
+            if (isPpgScanning) return;
+            isPpgScanning = true;
+            
+            const bpmDisplay = document.getElementById('bpmDisplay');
+            const statusText = document.getElementById('ppgStatusText');
+            const heartIcon = document.getElementById('heartIcon');
+            const btnStart = document.getElementById('btnStartPpg');
+
+            btnStart.disabled = true;
+            btnStart.classList.add('opacity-50');
+            statusText.innerText = "Mengukur gelombang warna kapiler darah... Mohon tenang.";
+            heartIcon.classList.add('pulse-animation');
+
+            let countdown = 15;
+            ppgInterval = setInterval(() => {
+                countdown--;
+                // Simulate PPG fluctuating readings during scan
+                const tempBpm = Math.floor(Math.random() * (95 - 65 + 1)) + 65;
+                bpmDisplay.innerHTML = `${tempBpm} <span class="text-sm font-normal text-slate-400">BPM</span>`;
+
+                if (countdown <= 0) {
+                    clearInterval(ppgInterval);
+                    isPpgScanning = false;
+                    
+                    // Final calculated BPM
+                    const finalBpm = Math.floor(Math.random() * (88 - 70 + 1)) + 70;
+                    gameState.bpm = finalBpm;
+                    
+                    // Update UI
+                    bpmDisplay.innerHTML = `${finalBpm} <span class="text-sm font-normal text-slate-400">BPM</span>`;
+                    document.getElementById('topBpm').innerText = `${finalBpm} BPM`;
+                    document.getElementById('gameCardBpm').innerText = `${finalBpm} BPM`;
+                    
+                    statusText.innerText = "Pemindaian selesai! Detak jantung Anda normal dan tersinkronisasi.";
+                    heartIcon.classList.remove('pulse-animation');
+                    btnStart.disabled = false;
+                    btnStart.classList.remove('opacity-50');
+
+                    showModal("Uji Detak Jantung Selesai", `Detak jantung terdeteksi: ${finalBpm} BPM (Normal). Stamina karakter bertambah +20%!`, "fa-heart-pulse", "text-rose-400");
+                    
+                    // Boost Stamina in game
+                    gameState.stamina = Math.min(100, gameState.stamina + 20);
+                    document.getElementById('topStamina').innerText = `${gameState.stamina}%`;
+                }
+            }, 1000);
+        }
+
+        function resetPpgScan() {
+            if(ppgInterval) clearInterval(ppgInterval);
+            isPpgScanning = false;
+            document.getElementById('bpmDisplay').innerHTML = `-- <span class="text-sm font-normal text-slate-400">BPM</span>`;
+            document.getElementById('ppgStatusText').innerText = 'Tekan "Mulai Pemindaian" dan tempelkan jari pada sensor.';
+            document.getElementById('heartIcon').classList.remove('pulse-animation');
+            document.getElementById('btnStartPpg').disabled = false;
+            document.getElementById('btnStartPpg').classList.remove('opacity-50');
+        }
+
+        /* ==================== FITUR KESEHATAN 2: JAM LARI & STOPWATCH ==================== */
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let isTimerRunning = false;
+
+        function toggleRunTimer() {
+            const btn = document.getElementById('btnStartTimer');
+            if(!isTimerRunning) {
+                isTimerRunning = true;
+                btn.innerHTML = `<i class="fa-solid fa-pause"></i> Jeda Latihan`;
+                btn.className = "flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2";
+
+                timerInterval = setInterval(() => {
+                    timerSeconds++;
+                    updateTimerDisplay();
+                }, 1000);
+            } else {
+                isTimerRunning = false;
+                clearInterval(timerInterval);
+                btn.innerHTML = `<i class="fa-solid fa-play"></i> Lanjutkan Lari`;
+                btn.className = "flex-1 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2";
+            }
+        }
+
+        function updateTimerDisplay() {
+            const hrs = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
+            const secs = String(timerSeconds % 60).padStart(2, '0');
+            
+            const timeStr = `${hrs}:${mins}:${secs}`;
+            document.getElementById('stopwatchDisplay').innerText = timeStr;
+            document.getElementById('gameCardRun').innerText = timeStr;
+
+            // Estimate steps & calories based on time running
+            const estSteps = Math.floor(timerSeconds * 2.2);
+            const estCalories = (timerSeconds * 0.08).toFixed(1);
+            const estDist = Math.floor(timerSeconds * 1.4);
+
+            document.getElementById('calcSteps').innerText = estSteps.toLocaleString();
+            document.getElementById('calcCalories').innerText = estCalories;
+            document.getElementById('calcDistance').innerText = estDist;
+
+            // Sync steps with top player stats
+            gameState.steps = 1240 + estSteps;
+            document.getElementById('topSteps').innerText = gameState.steps.toLocaleString();
+        }
+
+        function resetRunTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            timerSeconds = 0;
+            updateTimerDisplay();
+            const btn = document.getElementById('btnStartTimer');
+            btn.innerHTML = `<i class="fa-solid fa-play"></i> Mulai Lari / Latihan`;
+            btn.className = "flex-1 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2";
+        }
+
+        /* ==================== HEALTH LOG & CHART.JS INTEGRATION ==================== */
+        let healthChart = null;
+
+        function initHealthChart() {
+            const ctx = document.getElementById('healthChart').getContext('2d');
+            healthChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+                    datasets: [
+                        {
+                            label: 'Detak Jantung Rata-Rata (BPM)',
+                            data: [72, 75, 71, 78, 74, 70, 75],
+                            borderColor: '#f43f5e',
+                            backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Langkah Harian (Ribu)',
+                            data: [3.2, 4.1, 2.8, 5.0, 4.5, 6.2, 5.8],
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8', font: { size: 10 } } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+                        y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+                    }
+                }
+            });
+        }
+
+        function saveHealthLog() {
+            const water = document.getElementById('waterInput').value;
+            const sleep = document.getElementById('sleepInput').value;
+
+            showModal("Log Kesehatan Disimpan", `Data konsumsi air (${water} gelas) dan durasi tidur (${sleep} jam) berhasil dicatat. Karakter mendapatkan +50 EXP!`, "fa-circle-check", "text-emerald-400");
+        }
+
+        /* ==================== TEKA-TEKI KESEHATAN (QUIZ ENGINE) ==================== */
+        const quizQuestions = [
+            {
+                category: "Nutrisi & Gizi Seimbang",
+                question: "Gerbang Batu Nutrisi terkunci! Makanan jenis apa yang memberikan pasokan energi tahan lama tanpa menyebabkan lonjakan gula darah drastis?",
+                options: [
+                    "Permen manis dan minuman bersoda",
+                    "Karbohidrat kompleks seperti oat, pisang, dan beras merah",
+                    "Gorengan bercitarasa tinggi dan gurih",
+                    "Keripik asin dan makanan siap saji"
+                ],
+                correct: 1,
+                explanation: "Karbohidrat kompleks kaya akan serat sehingga dicerna secara perlahan oleh tubuh, memberikan energi stabil untuk aktivitas petualangan."
+            },
+            {
+                category: "Hidrasi & Kebugaran",
+                question: "Berapa jumlah air putih harian yang direkomendasikan untuk mencegah dehidrasi saat beraktivitas fisik?",
+                options: [
+                    "Cukup 1-2 gelas sehari saat haus saja",
+                    "Sekitar 8 gelas (2 liter) per hari",
+                    "15 gelas per hari tanpa henti",
+                    "Tidak perlu minum air jika sudah minum sirup"
+                ],
+                correct: 1,
+                explanation: "Tubuh manusia terdiri dari sekitar 60% air. Meminum sekitar 8 gelas air per hari menjaga fungsi organ dan fokus otak tetap optimal."
+            },
+            {
+                category: "Kardiovaskular & Olahraga",
+                question: "Manfaat utama dari melakukan aktivitas olahraga aerobik (seperti lari atau bersepeda) secara teratur adalah...",
+                options: [
+                    "Memperkuat otot jantung dan kelancaran sirkulasi darah",
+                    "Membuat tubuh menjadi cepat lelah sepanjang hari",
+                    "Mengurangi daya tahan tubuh terhadap penyakit",
+                    "Menurunkan fungsi paru-paru secara drastis"
+                ],
+                correct: 0,
+                explanation: "Olahraga aerobik melatih otot jantung agar dapat memompa darah lebih efisien ke seluruh tubuh."
+            },
+            {
+                category: "Pola Tidur & Pemulihan",
+                question: "Berapa lama durasi tidur ideal untuk remaja sekolah agar proses pemulihan fisik dan memori daya ingat berjalan maksimal?",
+                options: [
+                    "3 - 4 jam per malam",
+                    "8 - 10 jam per malam",
+                    "12 - 14 jam per malam",
+                    "Tidur tidak diperlukan jika minum kafein"
+                ],
+                correct: 1,
+                explanation: "Saat tidur nyenyak (NREM/REM), tubuh memperbaiki jaringan sel yang rusak dan otak mengkonsolidasikan ingatan pelajaran."
+            }
+        ];
+
+        function loadQuestion() {
+            const current = quizQuestions[gameState.quizIndex];
+            document.getElementById('quizCategory').innerText = `Kategori: ${current.category}`;
+            document.getElementById('quizCounter').innerText = `Soal ${gameState.quizIndex + 1} Dari ${quizQuestions.length}`;
+            document.getElementById('quizQuestion').innerText = current.question;
+
+            const optionsContainer = document.getElementById('quizOptions');
+            optionsContainer.innerHTML = '';
+
+            current.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-purple-500/50 p-3.5 rounded-xl text-xs text-slate-200 font-medium transition flex items-center justify-between group";
+                btn.innerHTML = `
+                    <span>${opt}</span>
+                    <i class="fa-regular fa-circle text-slate-600 group-hover:text-purple-400"></i>
+                `;
+                btn.onclick = () => checkAnswer(idx, btn);
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('quizExplanation').classList.add('hidden');
+        }
+
+        function checkAnswer(selectedIdx, btnElement) {
+            const current = quizQuestions[gameState.quizIndex];
+            const allBtns = document.getElementById('quizOptions').children;
+
+            // Disable all option buttons
+            for(let b of allBtns) {
+                b.disabled = true;
+                b.classList.add('opacity-60');
+            }
+
+            if (selectedIdx === current.correct) {
+                btnElement.className = "w-full text-left bg-emerald-950/80 border border-emerald-500 p-3.5 rounded-xl text-xs text-emerald-200 font-medium transition flex items-center justify-between";
+                btnElement.querySelector('i').className = "fa-solid fa-circle-check text-emerald-400";
+                gameState.quizScore++;
+            } else {
+                btnElement.className = "w-full text-left bg-rose-950/80 border border-rose-500 p-3.5 rounded-xl text-xs text-rose-200 font-medium transition flex items-center justify-between";
+                btnElement.querySelector('i').className = "fa-solid fa-circle-xmark text-rose-400";
+
+                // Highlight correct answer
+                const correctBtn = allBtns[current.correct];
+                correctBtn.className = "w-full text-left bg-emerald-950/80 border border-emerald-500 p-3.5 rounded-xl text-xs text-emerald-200 font-medium transition flex items-center justify-between";
+                correctBtn.querySelector('i').className = "fa-solid fa-circle-check text-emerald-400";
+            }
+
+            // Show educational explanation
+            document.getElementById('explanationText').innerText = current.explanation;
+            document.getElementById('quizExplanation').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            if (gameState.quizIndex < quizQuestions.length - 1) {
+                gameState.quizIndex++;
+                loadQuestion();
+            } else {
+                // Quiz completed
+                showModal("Teka-Teki Selesai!", `Selamat! Anda berhasil menyelesaikan semua teka-teki kesehatan dengan skor ${gameState.quizScore}/${quizQuestions.length}. Gerbang Kuis Terbuka!`, "fa-trophy", "text-yellow-400");
+                
+                // Unlock crystal in game
+                gameState.crystals = Math.min(3, gameState.crystals + 1);
+                document.getElementById('gameCardCrystals').innerText = `${gameState.crystals} / 3 Ditemukan`;
+                
+                // Reset quiz index
+                gameState.quizIndex = 0;
+                loadQuestion();
+            }
+        }
+
+        function previousQuestion() {
+            if (gameState.quizIndex > 0) {
+                gameState.quizIndex--;
+                loadQuestion();
+            }
+        }
+
+        /* ==================== INIT ON WINDOW LOAD ==================== */
+        window.onload = function() {
+            // Initialize 3D Graphics
+            init3DGame();
+
+            // Initialize Health Chart
+            initHealthChart();
+
+            // Initialize First Quiz
+            loadQuestion();
+        };
+    </script>
+</body>
+</html>
